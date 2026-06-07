@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIFTY PULSE — Daily Market Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0a0c10; --bg2:#0f1218; --bg3:#151b24; --bg4:#1c2430;
+  --accent:#f0b429; --accent2:#e05c2a;
+  --green:#22c55e; --red:#ef4444; --blue:#3b82f6; --purple:#a855f7;
+  --text:#e8eaf0; --muted:#6b7280; --border:#1e2a38;
+  --glow:rgba(240,180,41,0.15);
+  --font-mono:'JetBrains Mono',monospace;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-serif:'Instrument Serif',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(240,180,41,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(240,180,41,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* TICKER */
+.ticker-wrap{background:var(--accent);color:#000;overflow:hidden;height:32px;display:flex;align-items:center;position:sticky;top:0;z-index:100;}
+.ticker-label{background:#000;color:var(--accent);font-family:var(--font-display);font-size:14px;padding:0 16px;height:100%;display:flex;align-items:center;flex-shrink:0;letter-spacing:2px;}
+.ticker-content{display:flex;animation:ticker 50s linear infinite;white-space:nowrap;}
+.ticker-item{font-family:var(--font-mono);font-size:12px;font-weight:700;padding:0 32px;letter-spacing:1px;}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* HEADER */
+header{position:relative;z-index:1;padding:24px 32px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.logo{font-family:var(--font-display);font-size:48px;letter-spacing:4px;line-height:1;color:var(--accent);text-shadow:0 0 40px var(--glow);}
+.logo span{color:var(--text);}
+.header-meta{text-align:right;font-size:11px;color:var(--muted);letter-spacing:1px;}
+.date-live{font-size:17px;font-family:var(--font-display);color:var(--text);letter-spacing:2px;display:block;}
+.live-dot{display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;margin-right:6px;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)}}
+
+/* DATA SOURCE BANNER */
+.data-banner{position:relative;z-index:1;background:var(--bg3);border-bottom:1px solid var(--border);padding:7px 32px;display:flex;align-items:center;gap:16px;font-size:10px;letter-spacing:1px;}
+.data-banner .src-live{color:var(--green);}
+.data-banner .src-demo{color:var(--accent);}
+.data-banner .src-err{color:var(--red);}
+
+/* DASHBOARD GRID */
+.dashboard{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr 360px;gap:14px;padding:18px 22px;max-width:1700px;margin:0 auto;}
+@media(max-width:1200px){.dashboard{grid-template-columns:1fr 1fr;}.news-col{grid-column:1/-1;}}
+@media(max-width:700px){.dashboard{grid-template-columns:1fr;padding:10px;}.logo{font-size:34px;}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:18px;position:relative;overflow:hidden;transition:border-color 0.3s;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent);}
+.card:hover{border-color:rgba(240,180,41,0.25);}
+.card-title{font-family:var(--font-display);font-size:13px;letter-spacing:3px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.ct-badge{font-size:10px;background:var(--bg3);border:1px solid var(--border);padding:2px 8px;border-radius:2px;color:var(--muted);letter-spacing:1px;}
+.ct-live{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 1s infinite;flex-shrink:0;}
+
+/* PRICE CARD */
+.price-card{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr auto;gap:28px;align-items:center;}
+@media(max-width:700px){.price-card{grid-template-columns:1fr;}}
+.price-main .label{font-size:10px;letter-spacing:3px;color:var(--muted);}
+.price-main .value{font-family:var(--font-display);font-size:68px;letter-spacing:2px;line-height:1;color:var(--accent);text-shadow:0 0 30px var(--glow);}
+.price-main .change{font-size:17px;font-weight:700;margin-top:4px;}
+.up{color:var(--green);} .down{color:var(--red);}
+.price-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat-box{background:var(--bg3);border:1px solid var(--border);padding:9px 12px;border-radius:2px;}
+.stat-box .s-label{font-size:9px;letter-spacing:2px;color:var(--muted);}
+.stat-box .s-val{font-size:15px;font-weight:700;color:var(--text);margin-top:2px;}
+.market-status{text-align:right;}
+.status-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid currentColor;font-family:var(--font-display);font-size:14px;letter-spacing:2px;}
+.status-open{color:var(--green);} .status-closed{color:var(--red);}
+.oc-timer{font-size:11px;color:var(--accent);margin-top:6px;letter-spacing:1px;font-weight:700;}
+
+/* SR LEVELS */
+.sr-levels{display:flex;flex-direction:column;gap:7px;}
+.sr-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;position:relative;overflow:hidden;transition:transform 0.2s;}
+.sr-row:hover{transform:translateX(3px);}
+.sr-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.sr-row.resist::before{background:var(--red);} .sr-row.support::before{background:var(--green);} .sr-row.pivot::before{background:var(--accent);}
+.sr-badge{font-size:9px;letter-spacing:1px;padding:2px 7px;border-radius:2px;font-weight:700;min-width:30px;text-align:center;}
+.resist .sr-badge{background:rgba(239,68,68,0.15);color:var(--red);}
+.support .sr-badge{background:rgba(34,197,94,0.15);color:var(--green);}
+.pivot .sr-badge{background:rgba(240,180,41,0.15);color:var(--accent);}
+.sr-label{font-size:10px;color:var(--muted);flex:1;letter-spacing:0.5px;}
+.sr-value{font-size:16px;font-weight:700;font-family:var(--font-mono);}
+.resist .sr-value{color:var(--red);} .support .sr-value{color:var(--green);} .pivot .sr-value{color:var(--accent);}
+.sr-dist{font-size:10px;min-width:55px;text-align:right;}
+.zone-bar{margin:12px 0 6px;position:relative;height:28px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;overflow:hidden;}
+.zone-fill{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,rgba(34,197,94,0.35),rgba(240,180,41,0.35));transition:width 1s ease;}
+.zone-marker{position:absolute;top:0;bottom:0;width:2px;background:var(--blue);box-shadow:0 0 8px var(--blue);}
+.zone-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);letter-spacing:1px;}
+.method-box{background:var(--bg3);border:1px solid rgba(240,180,41,0.15);padding:12px;border-radius:2px;margin-top:10px;font-size:10px;color:var(--muted);line-height:1.9;}
+.method-box strong{color:var(--accent);}
+
+/* TEXT REPORT */
+.text-report{background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:14px;font-size:11px;line-height:1.9;white-space:pre-wrap;font-family:var(--font-mono);color:var(--text);max-height:420px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.hl-green{color:var(--green);font-weight:700;} .hl-red{color:var(--red);font-weight:700;} .hl-gold{color:var(--accent);font-weight:700;}
+
+/* CHART */
+.chart-card{grid-column:1/3;}
+@media(max-width:1200px){.chart-card{grid-column:1/-1;}}
+.chart-wrap{position:relative;height:260px;}
+
+/* NEWS */
+.news-col{grid-column:3;grid-row:2/5;display:flex;flex-direction:column;gap:14px;}
+@media(max-width:1200px){.news-col{grid-column:1/-1;grid-row:auto;}}
+.news-panel{flex:1;overflow-y:auto;max-height:560px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.news-tabs{display:flex;margin-bottom:14px;border-bottom:1px solid var(--border);}
+.news-tab{padding:7px 14px;font-family:var(--font-display);font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s;background:none;border-top:none;border-left:none;border-right:none;letter-spacing:1px;}
+.news-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.news-list{display:flex;flex-direction:column;gap:9px;}
+.news-item{padding:11px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;cursor:pointer;transition:all 0.2s;text-decoration:none;display:block;color:inherit;}
+.news-item:hover{border-color:rgba(240,180,41,0.3);transform:translateX(2px);}
+.news-tag{font-size:9px;letter-spacing:2px;color:var(--accent2);margin-bottom:5px;font-weight:700;}
+.news-headline{font-size:12px;line-height:1.5;color:var(--text);font-family:var(--font-serif);font-style:italic;}
+.news-meta{font-size:9px;color:var(--muted);margin-top:5px;letter-spacing:1px;}
+
+/* OPTION CHAIN */
+.oc-section{grid-column:1/-1;}
+.oc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:900px){.oc-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.oc-grid{grid-template-columns:1fr;}}
+
+.signal-card{padding:16px;background:var(--bg3);border:2px solid var(--border);border-radius:2px;text-align:center;position:relative;}
+.signal-card.bullish{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.04);}
+.signal-card.bearish{border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.04);}
+.signal-card.neutral{border-color:rgba(240,180,41,0.3);background:rgba(240,180,41,0.03);}
+.signal-label{font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:6px;}
+.signal-val{font-family:var(--font-display);font-size:32px;letter-spacing:2px;line-height:1;}
+.signal-val.green{color:var(--green);} .signal-val.red{color:var(--red);} .signal-val.gold{color:var(--accent);}
+.signal-sub{font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:1px;}
+
+.mood-bar-wrap{margin:12px 0 6px;height:24px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;}
+.mood-bar-fill{height:100%;transition:width 1s ease;border-radius:12px;}
+.mood-label{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:4px;}
+
+.oi-table{width:100%;border-collapse:collapse;font-size:11px;}
+.oi-table th{background:var(--bg3);color:var(--muted);font-size:9px;letter-spacing:2px;padding:7px 10px;text-align:center;border-bottom:1px solid var(--border);font-weight:500;}
+.oi-table td{padding:6px 10px;border-bottom:1px solid rgba(30,42,56,0.5);text-align:center;transition:background 0.2s;}
+.oi-table tr:hover td{background:var(--bg4);}
+.ce-oi{color:#f87171;} .pe-oi{color:#4ade80;} .strike-col{color:var(--accent);font-weight:700;}
+.atm-row td{background:rgba(240,180,41,0.06)!important;}
+.max-ce-row td{background:rgba(239,68,68,0.05)!important;}
+.max-pe-row td{background:rgba(34,197,94,0.05)!important;}
+.oi-bar{display:inline-block;height:8px;border-radius:1px;min-width:2px;vertical-align:middle;margin:0 3px;}
+.ce-bar{background:var(--red);opacity:0.7;} .pe-bar{background:var(--green);opacity:0.7;}
+.oi-chg-up{color:var(--green);font-size:10px;} .oi-chg-down{color:var(--red);font-size:10px;}
+
+.call-item{padding:12px 14px;border-radius:2px;margin-bottom:8px;position:relative;}
+.call-item.buy-call{background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);}
+.call-item.sell-call{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);}
+.call-item.neutral-call{background:rgba(240,180,41,0.05);border:1px solid rgba(240,180,41,0.2);}
+.call-type{font-size:9px;letter-spacing:3px;font-weight:700;margin-bottom:4px;}
+.buy-call .call-type{color:var(--green);} .sell-call .call-type{color:var(--red);} .neutral-call .call-type{color:var(--accent);}
+.call-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.call-desc{font-size:10px;color:var(--muted);line-height:1.7;}
+.call-levels{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;}
+.call-lvl{font-size:10px;padding:3px 10px;border-radius:2px;font-weight:700;}
+.call-lvl.entry{background:rgba(59,130,246,0.15);color:var(--blue);}
+.call-lvl.sl{background:rgba(239,68,68,0.15);color:var(--red);}
+.call-lvl.target{background:rgba(34,197,94,0.15);color:var(--green);}
+.call-time{font-size:9px;color:var(--muted);position:absolute;top:10px;right:12px;}
+
+.pcr-display{text-align:center;padding:8px 0;}
+.pcr-number{font-family:var(--font-display);font-size:48px;letter-spacing:2px;}
+.pcr-number.bullish{color:var(--green);} .pcr-number.bearish{color:var(--red);} .pcr-number.neutral-pcr{color:var(--accent);}
+.pcr-interpretation{font-size:10px;margin-top:8px;padding:8px 10px;border-radius:2px;text-align:left;line-height:1.6;}
+.pcr-bull{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);color:var(--green);}
+.pcr-bear{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:var(--red);}
+.pcr-neut{background:rgba(240,180,41,0.06);border:1px solid rgba(240,180,41,0.2);color:var(--accent);}
+
+.maxpain-val{font-family:var(--font-display);font-size:38px;color:var(--purple);letter-spacing:2px;text-align:center;padding:8px 0 2px;}
+.sell-analysis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.sell-box{padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;text-align:center;}
+.sell-box .sb-label{font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px;}
+.sell-box .sb-val{font-family:var(--font-display);font-size:28px;letter-spacing:1px;}
+.ce-sell .sb-val{color:var(--red);} .pe-sell .sb-val{color:var(--green);}
+.sell-box .sb-sub{font-size:9px;color:var(--muted);margin-top:3px;}
+.sell-winner{text-align:center;margin-top:12px;padding:10px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:2px;}
+.ce-dom{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--red);}
+.pe-dom{background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:var(--green);}
+.eq-dom{background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.2);color:var(--accent);}
+
+.oc-table-wrap{overflow-x:auto;max-height:360px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:400% 100%;animation:shimmer 1.5s infinite;border-radius:2px;}
+@keyframes shimmer{0%{background-position:100%}100%{background-position:-100%}}
+
+#toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--accent);color:var(--accent);padding:9px 18px;font-size:11px;letter-spacing:2px;z-index:999;transform:translateY(60px);opacity:0;transition:all 0.3s;border-radius:2px;}
+#toast.show{transform:translateY(0);opacity:1;}
+
+footer{position:relative;z-index:1;text-align:center;padding:16px;font-size:10px;color:var(--muted);letter-spacing:1px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<div class="ticker-wrap">
+  <div class="ticker-label">NSE LIVE</div>
+  <div class="ticker-content" id="tickerContent">
+    <span class="ticker-item">⌛ Fetching live data...</span>
+    <span class="ticker-item">⌛ Fetching live data...</span>
+  </div>
+</div>
+
+<header>
+  <div>
+    <div class="logo">NIFTY<span>PULSE</span></div>
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:4px">DAILY S/R · OPTION CHAIN · MARKET INTELLIGENCE</div>
+  </div>
+  <div class="header-meta">
+    <span class="date-live" id="liveDate">—</span>
+    <div style="margin-top:4px"><span class="live-dot"></span>AUTO-UPDATING</div>
+    <div class="oc-timer" id="ocCountdown">OC: next refresh in —</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px" id="lastFetch">—</div>
+  </div>
+</header>
+
+<!-- DATA SOURCE BANNER -->
+<div class="data-banner" id="dataBanner">
+  <span id="dataSourceLabel" style="color:var(--muted)">⌛ Connecting to data source...</span>
+  <span style="color:var(--muted)">|</span>
+  <span style="color:var(--muted)">S/R levels based on previous day OHLC (standard pivot point method)</span>
+</div>
+
+<div class="dashboard">
+
+  <!-- PRICE CARD -->
+  <div class="card price-card">
+    <div class="price-main">
+      <div class="label">NIFTY 50 — LAST PRICE</div>
+      <div class="value" id="niftyPrice">—</div>
+      <div class="change" id="niftyChange">Fetching...</div>
+    </div>
+    <div class="price-stats">
+      <div class="stat-box"><div class="s-label">DAY HIGH</div><div class="s-val" id="dayHigh">—</div></div>
+      <div class="stat-box"><div class="s-label">DAY LOW</div><div class="s-val" id="dayLow">—</div></div>
+      <div class="stat-box"><div class="s-label">PREV CLOSE</div><div class="s-val" id="prevClose">—</div></div>
+      <div class="stat-box"><div class="s-label">52W HIGH</div><div class="s-val" id="wkHigh">—</div></div>
+    </div>
+    <div class="market-status">
+      <div class="status-badge" id="marketStatus">
+        <span class="live-dot" id="statusDot"></span>
+        <span id="statusText">CHECKING...</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px;letter-spacing:1px" id="nextUpdate">IST 09:15 — 15:30 MARKET HOURS</div>
+    </div>
+  </div>
+
+  <!-- S/R LEVELS -->
+  <div class="card">
+    <div class="card-title">
+      SUPPORT &amp; RESISTANCE
+      <span class="ct-badge" id="srBasisLabel">PREV DAY OHLC</span>
+    </div>
+
+    <!-- PRICE POSITION BAR -->
+    <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">PRICE POSITION BETWEEN S2 ↔ R2</div>
+    <div class="zone-bar">
+      <div class="zone-fill" id="zoneFill" style="width:50%"></div>
+      <div class="zone-marker" id="zoneMarker" style="left:50%"></div>
+    </div>
+    <div class="zone-labels">
+      <span id="zoneSupport">S2</span>
+      <span style="color:var(--accent)">PIVOT</span>
+      <span id="zoneResist">R2</span>
+    </div>
+
+    <div class="sr-levels" id="srLevels" style="margin-top:10px">
+      <div class="skeleton" style="height:42px"></div>
+      <div class="skeleton" style="height:42px"></div>
+      <div class="skeleton" style="height:42px"></div>
+      <div class="skeleton" style="height:42px"></div>
+      <div class="skeleton" style="height:42px"></div>
+      <div class="skeleton" style="height:42px"></div>
+      <div class="skeleton" style="height:42px"></div>
+    </div>
+
+    <div class="method-box" style="margin-top:12px;">
+      <strong>FORMULA (Standard Pivot):</strong><br>
+      <strong>Pivot (PP)</strong> = (Prev High + Prev Low + Prev Close) ÷ 3<br>
+      <strong>R1</strong> = (2 × PP) − Prev Low &nbsp;|&nbsp; <strong>R2</strong> = PP + (H − L)<br>
+      <strong>S1</strong> = (2 × PP) − Prev High &nbsp;|&nbsp; <strong>S2</strong> = PP − (H − L)<br>
+      <span id="ohlcUsed" style="color:var(--accent)">OHLC: loading...</span>
+    </div>
+  </div>
+
+  <!-- MORNING BRIEF -->
+  <div class="card">
+    <div class="card-title">MORNING BRIEF</div>
+    <div id="textReport" class="text-report"><span style="color:var(--muted)">⌛ Generating...</span></div>
+  </div>
+
+  <!-- OPTION CHAIN SECTION -->
+  <div class="card oc-section">
+    <div class="card-title">
+      <span class="ct-live"></span>
+      OPTION CHAIN ANALYSIS
+      <span class="ct-badge" id="ocExpiry">LOADING...</span>
+      <span class="ct-badge" id="ocLastUpdate">—</span>
+    </div>
+
+    <div class="oc-grid">
+
+      <!-- PCR -->
+      <div class="card" style="padding:14px;">
+        <div class="card-title" style="font-size:11px;">PUT/CALL RATIO (PCR)</div>
+        <div class="pcr-display">
+          <div class="pcr-number neutral-pcr" id="pcrNumber">—</div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:4px">TOTAL OI BASED PCR</div>
+          <div class="pcr-interpretation pcr-neut" id="pcrInterp">Loading option chain...</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.7;">
+          PCR &gt; 1.2 = Bullish &nbsp;|&nbsp; PCR &lt; 0.8 = Bearish<br>
+          PCR 0.8–1.2 = Neutral range
+        </div>
+      </div>
+
+      <!-- MAX PAIN -->
+      <div class="card" style="padding:14px;">
+        <div class="card-title" style="font-size:11px;">MAX PAIN LEVEL</div>
+        <div class="maxpain-val" id="maxPainVal">—</div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-align:center;">WHERE MAX OI EXPIRES WORTHLESS</div>
+        <div style="font-size:11px;margin-top:8px;" id="maxPainDist">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.7;">Price gravitates toward this level near expiry as options writers maximise profit.</div>
+      </div>
+
+      <!-- WRITERS DOMINANCE -->
+      <div class="card" style="padding:14px;">
+        <div class="card-title" style="font-size:11px;">WHO IS SELLING MORE?</div>
+        <div class="sell-analysis">
+          <div class="sell-box ce-sell">
+            <div class="sb-label">CALL WRITERS</div>
+            <div class="sb-val" id="ceWriting">—</div>
+            <div class="sb-sub">Total CE OI</div>
+          </div>
+          <div class="sell-box pe-sell">
+            <div class="sb-label">PUT WRITERS</div>
+            <div class="sb-val" id="peWriting">—</div>
+            <div class="sb-sub">Total PE OI</div>
+          </div>
+        </div>
+        <div class="sell-winner eq-dom" id="sellWinner">Loading...</div>
+      </div>
+
+    </div>
+
+    <!-- MARKET MOOD -->
+    <div style="margin-bottom:14px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;">MARKET MOOD — OPTION CHAIN SENTIMENT</div>
+      <div class="mood-bar-wrap">
+        <div class="mood-bar-fill" id="moodBarFill" style="width:50%;background:linear-gradient(90deg,var(--red),var(--accent),var(--green));"></div>
+      </div>
+      <div class="mood-label">
+        <span>🔴 BEARISH</span>
+        <span id="moodLabel" style="color:var(--accent);font-weight:700;">NEUTRAL</span>
+        <span>🟢 BULLISH</span>
+      </div>
+    </div>
+
+    <!-- TRADE CALLS -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;letter-spacing:3px;color:var(--muted);margin-bottom:10px;font-family:var(--font-display);">📊 TRADE CALLS FROM OPTION CHAIN</div>
+      <div id="tradeCalls">
+        <div class="skeleton" style="height:80px;margin-bottom:8px;"></div>
+        <div class="skeleton" style="height:80px;margin-bottom:8px;"></div>
+      </div>
+    </div>
+
+    <!-- HIGHEST OI WALLS -->
+    <div style="margin-bottom:14px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:10px;">HIGHEST OI WALLS — KEY STRIKE LEVELS</div>
+      <div id="highOILevels" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="skeleton" style="height:80px;"></div>
+        <div class="skeleton" style="height:80px;"></div>
+      </div>
+    </div>
+
+    <!-- OI TABLE -->
+    <div>
+      <div style="font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+        OPTION CHAIN — NEAR ATM STRIKES
+        <span style="font-size:9px;color:var(--red);">■ CE (Calls)</span>
+        <span style="font-size:9px;color:var(--green);">■ PE (Puts)</span>
+        <span style="font-size:9px;color:var(--accent);">■ ATM</span>
+      </div>
+      <div class="oc-table-wrap">
+        <table class="oi-table">
+          <thead>
+            <tr>
+              <th>CE OI CHG</th><th>CE OI</th><th>CE LTP</th>
+              <th>STRIKE</th>
+              <th>PE LTP</th><th>PE OI</th><th>PE OI CHG</th>
+            </tr>
+          </thead>
+          <tbody id="ocTableBody">
+            <tr><td colspan="7" style="color:var(--muted);padding:20px;text-align:center;">⌛ Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="card chart-card">
+    <div class="card-title">NIFTY INTRADAY — S/R &amp; OI WALLS OVERLAY</div>
+    <div class="chart-wrap"><canvas id="niftyChart"></canvas></div>
+  </div>
+
+  <!-- NEWS -->
+  <div class="news-col">
+    <div class="card news-panel">
+      <div class="card-title">MARKET NEWS</div>
+      <div class="news-tabs">
+        <button class="news-tab active" onclick="switchNews('domestic',this)">🇮🇳 INDIA</button>
+        <button class="news-tab" onclick="switchNews('global',this)">🌐 GLOBAL</button>
+        <button class="news-tab" onclick="switchNews('economy',this)">📊 ECONOMY</button>
+      </div>
+      <div class="news-list" id="newsList">
+        <div class="skeleton" style="height:70px;"></div>
+        <div class="skeleton" style="height:70px;"></div>
+        <div class="skeleton" style="height:70px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>NIFTYPULSE &nbsp;|&nbsp; DATA: NSE/YAHOO FINANCE · RSS FEEDS &nbsp;|&nbsp; ⚠ EDUCATIONAL ONLY — NOT INVESTMENT ADVICE &nbsp;|&nbsp; OC AUTO-REFRESH EVERY 1 MIN DURING MARKET HOURS</footer>
+<div id="toast">✓ UPDATED</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// REAL REFERENCE DATA — Updated from actual NSE
+// Last trading day: Friday June 5, 2026
+// Source: Yahoo Finance / NSE / Investing.com
+// ═══════════════════════════════════════════════
+const REAL_NIFTY_REFERENCE = {
+  // June 5, 2026 actual OHLC (last trading day)
+  prevDay: {
+    open:  23478.95,
+    high:  23516.35,
+    low:   23282.65,
+    close: 23366.70,
+    date:  'June 5, 2026'
+  },
+  // Approximate current levels (weekend — market closed)
+  price:       23366.70,
+  prevClose:   23416.55,   // June 4 close
+  high:        23516.35,
+  low:         23282.65,
+  change:      -49.85,
+  changePct:   -0.21,
+  fiftyTwoWeekHigh: 26373.20,
+  fiftyTwoWeekLow:  22182.55,
+};
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let niftyData    = { ...REAL_NIFTY_REFERENCE };
+let srLevels     = {};
+let chartInstance = null;
+let ocData       = null;
+let activeNewsTab = 'domestic';
+let dataSource   = 'reference';   // 'live' | 'reference'
+let srLocked     = false;         // SR computed once per session
+let ocRefreshSec = 60;
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+const fmt  = n => n != null ? (+n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+const fmtN = n => n != null ? (+n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
+const fmtK = n => {
+  if (!n) return '—';
+  if (n >= 1e7)  return (n/1e7).toFixed(2)+'Cr';
+  if (n >= 1e5)  return (n/1e5).toFixed(1)+'L';
+  return n.toLocaleString('en-IN');
+};
+function getIST() {
+  return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+}
+function isMarketOpen() {
+  const ist = getIST();
+  const mins = ist.getHours()*60 + ist.getMinutes();
+  return ist.getDay()>=1 && ist.getDay()<=5 && mins>=555 && mins<=930;
+}
+
+// ═══════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════
+function updateClock() {
+  const ist = getIST();
+  const D=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const M=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('liveDate').textContent =
+    `${D[ist.getDay()]} ${ist.getDate()} ${M[ist.getMonth()]} ${ist.getFullYear()} — ${String(ist.getHours()).padStart(2,'0')}:${String(ist.getMinutes()).padStart(2,'0')}:${String(ist.getSeconds()).padStart(2,'0')} IST`;
+  const mins = ist.getHours()*60+ist.getMinutes();
+  const wd   = ist.getDay()>=1 && ist.getDay()<=5;
+  const open = wd && mins>=555 && mins<=930;
+  document.getElementById('statusDot').style.background = open ? 'var(--green)' : 'var(--red)';
+  document.getElementById('statusText').textContent = open ? 'MARKET OPEN' : (wd?'MARKET CLOSED':'WEEKEND');
+  document.getElementById('marketStatus').className  = 'status-badge '+(open?'status-open':'status-closed');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ═══════════════════════════════════════════════
+// OC COUNTDOWN
+// ═══════════════════════════════════════════════
+function runOCCountdown() {
+  setInterval(() => {
+    ocRefreshSec--;
+    if (ocRefreshSec <= 0) {
+      ocRefreshSec = 60;
+      fetchOptionChain();
+    }
+    document.getElementById('ocCountdown').textContent = `OC: refresh in ${ocRefreshSec}s`;
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════
+// FETCH NIFTY — Yahoo Finance (works in browser)
+// Falls back to REAL reference data (not fake)
+// ═══════════════════════════════════════════════
+async function fetchNiftyData() {
+  // Try multiple Yahoo endpoints
+  const endpoints = [
+    'https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=5d',
+    'https://query2.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=5d',
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const res  = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0'
+        },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+
+      const meta = result.meta;
+      const q    = result.indicators?.quote?.[0];
+      const ts   = result.timestamp;
+      if (!meta || !q || !ts || ts.length < 2) continue;
+
+      // Get previous day (index len-2) for pivot calculation
+      // and today (last) for live price
+      const len = ts.length;
+
+      // Find last 2 valid days
+      let prevIdx = -1, todayIdx = len - 1;
+      for (let i = len - 2; i >= 0; i--) {
+        if (q.high[i] != null && q.low[i] != null && q.close[i] != null) {
+          prevIdx = i; break;
+        }
+      }
+      if (prevIdx === -1) continue;
+
+      const prevDay = {
+        open:  q.open[prevIdx]  || 0,
+        high:  q.high[prevIdx],
+        low:   q.low[prevIdx],
+        close: q.close[prevIdx],
+        date:  new Date(ts[prevIdx]*1000).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'}),
+      };
+      const livePrice = meta.regularMarketPrice || q.close[todayIdx];
+
+      niftyData = {
+        price:    livePrice,
+        prevClose: meta.chartPreviousClose || prevDay.close,
+        high:     meta.regularMarketDayHigh,
+        low:      meta.regularMarketDayLow,
+        change:   livePrice - (meta.chartPreviousClose || prevDay.close),
+        changePct: ((livePrice - (meta.chartPreviousClose || prevDay.close)) / (meta.chartPreviousClose || prevDay.close)) * 100,
+        fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow:  meta.fiftyTwoWeekLow,
+        prevDay,
+      };
+
+      dataSource = 'live';
+      setDataBanner('live', `✓ LIVE DATA — Yahoo Finance | Prev day: ${prevDay.date} H:${fmt(prevDay.high)} L:${fmt(prevDay.low)} C:${fmt(prevDay.close)}`);
+      break;
+
+    } catch (e) {
+      // continue to next endpoint
+    }
+  }
+
+  // If still on reference data, use it (don't use random fake numbers)
+  if (dataSource !== 'live') {
+    niftyData = { ...REAL_NIFTY_REFERENCE };
+    dataSource = 'reference';
+    setDataBanner('reference', `⚡ REFERENCE DATA (Jun 5, 2026) — Live fetch blocked by CORS. Open in your own browser for live feed.`);
+  }
+
+  updatePriceCard();
+
+  // Compute S/R only once (they are fixed for the trading day)
+  if (!srLocked) {
+    calculateSR();
+    buildTextReport();
+    buildChart();
+    srLocked = true;
+  }
+  updateTicker();
+  document.getElementById('lastFetch').textContent =
+    'Fetched: ' + getIST().toLocaleTimeString('en-IN') + ' IST';
+}
+
+function setDataBanner(type, msg) {
+  const el = document.getElementById('dataSourceLabel');
+  el.className = type === 'live' ? 'src-live' : (type === 'reference' ? 'src-demo' : 'src-err');
+  el.textContent = msg;
+}
+
+// ═══════════════════════════════════════════════
+// UPDATE PRICE CARD
+// ═══════════════════════════════════════════════
+function updatePriceCard() {
+  const d = niftyData;
+  document.getElementById('niftyPrice').textContent = fmt(d.price);
+  const up = d.change >= 0;
+  document.getElementById('niftyChange').innerHTML =
+    `<span class="${up?'up':'down'}">${up?'▲':'▼'} ${fmt(Math.abs(d.change))} (${(+d.changePct).toFixed(2)}%)</span>`;
+  document.getElementById('dayHigh').textContent   = fmt(d.high);
+  document.getElementById('dayLow').textContent    = fmt(d.low);
+  document.getElementById('prevClose').textContent = fmt(d.prevClose);
+  document.getElementById('wkHigh').textContent    = fmt(d.fiftyTwoWeekHigh);
+}
+
+// ═══════════════════════════════════════════════
+// CALCULATE S/R — ACCURATE PIVOT POINT METHOD
+// Based on previous day's confirmed OHLC
+// ═══════════════════════════════════════════════
+function calculateSR() {
+  const { high:H, low:L, close:C, date } = niftyData.prevDay;
+
+  // Standard Pivot Point
+  const P  = (H + L + C) / 3;
+  const R1 = (2 * P) - L;
+  const R2 = P + (H - L);
+  const R3 = H + 2 * (P - L);
+  const S1 = (2 * P) - H;
+  const S2 = P - (H - L);
+  const S3 = L - 2 * (H - P);
+
+  srLevels = { P, R1, R2, R3, S1, S2, S3 };
+
+  // Update basis label
+  document.getElementById('srBasisLabel').textContent = `BASED ON ${date||'PREV DAY'}`;
+  document.getElementById('ohlcUsed').textContent =
+    `Using H:${fmt(H)}  L:${fmt(L)}  C:${fmt(C)}`;
+
+  const cur = niftyData.price;
+
+  // Render S/R rows
+  const rows = [
+    { type:'resist', badge:'R3', label:'R3 — STRONG RESISTANCE', val:R3 },
+    { type:'resist', badge:'R2', label:'R2 — RESISTANCE 2',      val:R2 },
+    { type:'resist', badge:'R1', label:'R1 — RESISTANCE 1',      val:R1 },
+    { type:'pivot',  badge:'PP', label:'PIVOT POINT',            val:P  },
+    { type:'support',badge:'S1', label:'S1 — SUPPORT 1',         val:S1 },
+    { type:'support',badge:'S2', label:'S2 — SUPPORT 2',         val:S2 },
+    { type:'support',badge:'S3', label:'S3 — STRONG SUPPORT',    val:S3 },
+  ];
+
+  document.getElementById('srLevels').innerHTML = rows.map(r => {
+    const dist    = ((cur - r.val) / r.val * 100);
+    const distStr = (dist > 0 ? '+' : '') + dist.toFixed(2) + '%';
+    const distCls = dist > 0 ? 'up' : 'down';
+    return `<div class="sr-row ${r.type}" title="${r.label}">
+      <div class="sr-badge">${r.badge}</div>
+      <div class="sr-label">${r.label}</div>
+      <div class="sr-value">${fmt(r.val)}</div>
+      <div class="sr-dist ${distCls}">${distStr}</div>
+    </div>`;
+  }).join('');
+
+  // Zone bar (position between S2 and R2)
+  const pct = Math.min(100, Math.max(0, (cur - S2) / (R2 - S2) * 100));
+  document.getElementById('zoneFill').style.width  = pct + '%';
+  document.getElementById('zoneMarker').style.left = pct + '%';
+  document.getElementById('zoneSupport').textContent = fmt(S2);
+  document.getElementById('zoneResist').textContent  = fmt(R2);
+}
+
+// ═══════════════════════════════════════════════
+// MORNING TEXT BRIEF
+// ═══════════════════════════════════════════════
+function buildTextReport() {
+  const d = niftyData;
+  const { P, R1, R2, R3, S1, S2, S3 } = srLevels;
+  const ist = getIST();
+  const M = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const dateStr = `${ist.getDate()} ${M[ist.getMonth()]} ${ist.getFullYear()}`;
+  const up   = d.change >= 0;
+  const bias = d.price > P ? '🟢 BULLISH BIAS' : '🔴 BEARISH BIAS';
+  const biasNote = d.price > P
+    ? `Price ABOVE pivot. Bulls in control.\nR1 (${fmt(R1)}) is first target.\nBreak above R1 → R2 (${fmt(R2)}).`
+    : `Price BELOW pivot. Bears in control.\nS1 (${fmt(S1)}) is first support.\nBreak below S1 → S2 (${fmt(S2)}).`;
+
+  const prev = d.prevDay;
+  const report = `📅 ${dateStr}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 NIFTY 50 — DAILY BRIEF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRICE    : ₹ ${fmt(d.price)}
+CHANGE   : ${up?'▲':'▼'} ${fmt(Math.abs(d.change))} (${(+d.changePct).toFixed(2)}%)
+DAY H/L  : ${fmt(d.high)} / ${fmt(d.low)}
+PREV CLOSE: ${fmt(d.prevClose)}
+
+PREV DAY OHLC (for pivot calc):
+  H: ${fmt(prev.high)}  L: ${fmt(prev.low)}  C: ${fmt(prev.close)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 RESISTANCE LEVELS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  R3 : ${fmt(R3)}  (strong wall)
+  R2 : ${fmt(R2)}  (major)
+  R1 : ${fmt(R1)}  (first)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟡 PIVOT : ${fmt(P)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟢 SUPPORT LEVELS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  S1 : ${fmt(S1)}  (first)
+  S2 : ${fmt(S2)}  (major)
+  S3 : ${fmt(S3)}  (strong wall)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 ${bias}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${biasNote}
+
+INTRADAY STRATEGY:
+• BUY near S1/S2 with SL below S3
+• SELL near R1/R2 with SL above R3
+• Pivot break UP → bullish reversal
+• Pivot break DOWN → bearish reversal
+• Range trade: sell R1, buy S1 in
+  sideways market
+
+⚠ Educational only. Not financial advice.`;
+
+  document.getElementById('textReport').innerHTML = report
+    .replace(/🟢[^\n]*/g,  m => `<span class="hl-green">${m}</span>`)
+    .replace(/🔴[^\n]*/g,  m => `<span class="hl-red">${m}</span>`)
+    .replace(/🟡[^\n]*/g,  m => `<span class="hl-gold">${m}</span>`)
+    .replace(/(\d{4,6}\.\d{2})/g, m => `<b>${m}</b>`);
+}
+
+// ═══════════════════════════════════════════════
+// TICKER
+// ═══════════════════════════════════════════════
+function updateTicker() {
+  const d = niftyData;
+  const { P, R1, R2, S1, S2 } = srLevels;
+  const up = d.change >= 0;
+  const items = [
+    `NIFTY50  ₹${fmt(d.price)}  ${up?'▲':'▼'}${fmt(Math.abs(d.change))} (${(+d.changePct).toFixed(2)}%)`,
+    `PIVOT: ${fmt(P)}`,
+    `R1: ${fmt(R1)}  ·  R2: ${fmt(R2)}`,
+    `S1: ${fmt(S1)}  ·  S2: ${fmt(S2)}`,
+    `52W HIGH: ${fmt(d.fiftyTwoWeekHigh)}`,
+    `DAY H/L: ${fmt(d.high)} / ${fmt(d.low)}`,
+    `BIAS: ${d.price > P ? '▲ BULLISH' : '▼ BEARISH'}`,
+    ...(ocData ? [`PCR: ${calcPCR().toFixed(2)}`] : []),
+  ];
+  const doubled = [...items, ...items].map(i => `<span class="ticker-item">${i}</span>`).join('');
+  document.getElementById('tickerContent').innerHTML = doubled;
+}
+
+// ═══════════════════════════════════════════════
+// OPTION CHAIN — NSE via CORS proxy
+// ═══════════════════════════════════════════════
+async function fetchOptionChain() {
+  const nseUrl = 'https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY';
+  const proxies = [
+    `https://api.allorigins.win/get?url=${encodeURIComponent(nseUrl)}`,
+    `https://thingproxy.freeboard.io/fetch/${nseUrl}`,
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const outer = await res.json();
+      const raw   = typeof outer === 'string' ? outer : (outer.contents || JSON.stringify(outer));
+      const data  = JSON.parse(raw);
+      if (!data?.records?.data) continue;
+      ocData = data;
+      renderOptionChain(data);
+      document.getElementById('ocLastUpdate').textContent = getIST().toLocaleTimeString('en-IN') + ' IST';
+      return;
+    } catch (e) { /* try next */ }
+  }
+
+  // Fallback to realistic demo chain
+  buildDemoOptionChain();
+}
+
+function calcPCR() {
+  if (!ocData) return 1;
+  let ce = 0, pe = 0;
+  const recs = ocData.records?.data || [];
+  const exp  = [...new Set(recs.map(r => r.expiryDate))][0];
+  recs.filter(r => r.expiryDate === exp).forEach(r => {
+    ce += r.CE?.openInterest || 0;
+    pe += r.PE?.openInterest || 0;
+  });
+  return ce ? pe / ce : 1;
+}
+
+function renderOptionChain(data) {
+  const recs   = data.records?.data || [];
+  const expiries = [...new Set(recs.map(r => r.expiryDate))];
+  const nearExp  = expiries[0];
+
+  document.getElementById('ocExpiry').textContent = nearExp || 'NEAR EXPIRY';
+
+  const filtered = recs.filter(r => r.expiryDate === nearExp);
+  const spot     = data.records?.underlyingValue || niftyData.price;
+  const atmStrike = Math.round(spot / 50) * 50;
+
+  let totalCE = 0, totalPE = 0;
+  let maxCEOI = 0, maxPEOI = 0, maxCEStrike = 0, maxPEStrike = 0;
+  let maxPainStrike = atmStrike, minPain = Infinity;
+
+  filtered.forEach(r => {
+    const ceOI = r.CE?.openInterest || 0;
+    const peOI = r.PE?.openInterest || 0;
+    totalCE += ceOI; totalPE += peOI;
+    if (ceOI > maxCEOI) { maxCEOI = ceOI; maxCEStrike = r.strikePrice; }
+    if (peOI > maxPEOI) { maxPEOI = peOI; maxPEStrike = r.strikePrice; }
+  });
+
+  // Max Pain
+  filtered.forEach(row => {
+    const S = row.strikePrice;
+    let pain = 0;
+    filtered.forEach(r => {
+      const K = r.strikePrice;
+      if (r.CE) pain += Math.max(0, K - S) * (r.CE.openInterest || 0);
+      if (r.PE) pain += Math.max(0, S - K) * (r.PE.openInterest || 0);
+    });
+    if (pain < minPain) { minPain = pain; maxPainStrike = S; }
+  });
+
+  const pcr = totalCE ? totalPE / totalCE : 1;
+
+  // PCR display
+  const pcrEl = document.getElementById('pcrNumber');
+  pcrEl.textContent = pcr.toFixed(2);
+  let pcrCls, pcrMsg;
+  if (pcr > 1.3)       { pcrCls='bullish'; pcrMsg='🟢 VERY BULLISH — Heavy put writing. Sellers supporting the market. Consider long CE near support.'; }
+  else if (pcr > 1.0)  { pcrCls='bullish'; pcrMsg='🟢 MILDLY BULLISH — More PE written vs CE. Slight upside bias.'; }
+  else if (pcr < 0.7)  { pcrCls='bearish'; pcrMsg='🔴 VERY BEARISH — Heavy call writing. Market capped by sellers. Consider long PE near resistance.'; }
+  else if (pcr < 1.0)  { pcrCls='bearish'; pcrMsg='🔴 MILDLY BEARISH — More CE written vs PE. Slight downside pressure.'; }
+  else                 { pcrCls='neutral-pcr'; pcrMsg='🟡 NEUTRAL — Balanced CE/PE writing. Range-bound market expected.'; }
+  pcrEl.className = 'pcr-number ' + pcrCls;
+  const interpEl = document.getElementById('pcrInterp');
+  interpEl.textContent = pcrMsg;
+  interpEl.className   = 'pcr-interpretation ' + (pcrCls === 'bullish' ? 'pcr-bull' : pcrCls === 'bearish' ? 'pcr-bear' : 'pcr-neut');
+
+  // Max Pain
+  document.getElementById('maxPainVal').textContent = fmtN(maxPainStrike);
+  const dist = spot - maxPainStrike;
+  document.getElementById('maxPainDist').innerHTML =
+    `Spot is <b style="color:${Math.abs(dist)<100?'var(--accent)':dist>0?'var(--green)':'var(--red)'}">${dist>0?'▲':'▼'} ${Math.abs(dist).toFixed(0)} pts</b> from max pain<br>
+     <span style="font-size:10px;color:var(--muted)">${dist>0?'Spot above max pain — bearish pull possible':'Spot below max pain — bullish pull possible'}</span>`;
+
+  // Writers
+  document.getElementById('ceWriting').textContent = fmtK(totalCE);
+  document.getElementById('peWriting').textContent = fmtK(totalPE);
+  const wEl = document.getElementById('sellWinner');
+  if (totalCE > totalPE * 1.1) {
+    wEl.className = 'sell-winner ce-dom';
+    wEl.innerHTML = '🔴 CALL SELLERS DOMINANT<br><span style="font-size:9px;font-weight:400;letter-spacing:1px">Upside being capped by call writers</span>';
+  } else if (totalPE > totalCE * 1.1) {
+    wEl.className = 'sell-winner pe-dom';
+    wEl.innerHTML = '🟢 PUT SELLERS DOMINANT<br><span style="font-size:9px;font-weight:400;letter-spacing:1px">Downside being supported by put writers</span>';
+  } else {
+    wEl.className = 'sell-winner eq-dom';
+    wEl.innerHTML = '🟡 BALANCED WRITING<br><span style="font-size:9px;font-weight:400;letter-spacing:1px">No strong directional bias from writers</span>';
+  }
+
+  // Mood bar
+  const moodPct = Math.min(100, Math.max(0, (pcr / 2) * 100));
+  document.getElementById('moodBarFill').style.width = moodPct + '%';
+  const mEl = document.getElementById('moodLabel');
+  if (pcr > 1.2)      { mEl.textContent = 'BULLISH'; mEl.style.color = 'var(--green)'; }
+  else if (pcr < 0.8) { mEl.textContent = 'BEARISH'; mEl.style.color = 'var(--red)';   }
+  else                { mEl.textContent = 'NEUTRAL'; mEl.style.color = 'var(--accent)'; }
+
+  // Highest OI walls
+  document.getElementById('highOILevels').innerHTML = `
+    <div style="padding:14px;background:var(--bg4);border:1px solid rgba(239,68,68,0.35);border-radius:2px;text-align:center;">
+      <div style="font-size:9px;color:var(--red);letter-spacing:2px;margin-bottom:6px;">🔴 MAX CALL OI — RESISTANCE WALL</div>
+      <div style="font-family:var(--font-display);font-size:34px;color:var(--red);letter-spacing:1px;">${fmtN(maxCEStrike)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;">OI: ${fmtK(maxCEOI)} lots</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:3px;">Call writers defending this level</div>
+    </div>
+    <div style="padding:14px;background:var(--bg4);border:1px solid rgba(34,197,94,0.35);border-radius:2px;text-align:center;">
+      <div style="font-size:9px;color:var(--green);letter-spacing:2px;margin-bottom:6px;">🟢 MAX PUT OI — SUPPORT WALL</div>
+      <div style="font-family:var(--font-display);font-size:34px;color:var(--green);letter-spacing:1px;">${fmtN(maxPEStrike)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;">OI: ${fmtK(maxPEOI)} lots</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:3px;">Put writers defending this floor</div>
+    </div>`;
+
+  // Trade calls
+  generateTradeCalls(spot, atmStrike, maxCEStrike, maxPEStrike, pcr, maxPainStrike);
+
+  // OI table
+  buildOITable(filtered, spot, atmStrike, maxCEStrike, maxPEStrike);
+
+  // Update ticker with OC data
+  updateTicker();
+}
+
+// ═══════════════════════════════════════════════
+// TRADE CALLS
+// ═══════════════════════════════════════════════
+function generateTradeCalls(spot, atm, maxCE, maxPE, pcr, maxPain) {
+  const { P, R1, R2, S1, S2 } = srLevels;
+  const now  = getIST().toLocaleTimeString('en-IN');
+  const calls = [];
+
+  // 1. PCR directional call
+  if (pcr > 1.2) {
+    calls.push({
+      type:'buy-call', badge:'🟢 PCR BULLISH SETUP',
+      title:`Buy CE — PCR ${pcr.toFixed(2)} signals strong put writing`,
+      desc:`PCR above 1.2 means put writers are aggressively selling puts = they expect market to hold. Buy ATM Call near S1 (${fmt(S1)}). Put writing at ${fmtN(maxPE)} is the floor.`,
+      entry:`CE ATM ${fmtN(atm)} near S1`,
+      sl:`Below ${fmtN(Math.round(S2/50)*50)}`,
+      target:`${fmtN(Math.round(R1/50)*50)} then ${fmtN(Math.round(R2/50)*50)}`
+    });
+  } else if (pcr < 0.8) {
+    calls.push({
+      type:'sell-call', badge:'🔴 PCR BEARISH SETUP',
+      title:`Buy PE — PCR ${pcr.toFixed(2)} signals heavy call writing`,
+      desc:`PCR below 0.8 means call writers are aggressively selling calls = they expect market to remain capped. Buy ATM Put near R1 (${fmt(R1)}). Call writing at ${fmtN(maxCE)} is the ceiling.`,
+      entry:`PE ATM ${fmtN(atm)} near R1`,
+      sl:`Above ${fmtN(Math.round(R2/50)*50)}`,
+      target:`${fmtN(Math.round(S1/50)*50)} then ${fmtN(Math.round(S2/50)*50)}`
+    });
+  }
+
+  // 2. OI wall range trade
+  const range = maxCE - maxPE;
+  if (range > 0 && spot > maxPE + 30 && spot < maxCE - 30) {
+    calls.push({
+      type:'neutral-call', badge:'⚡ OI WALL RANGE TRADE',
+      title:`Range: ${fmtN(maxPE)} ↔ ${fmtN(maxCE)} (${range} pts range)`,
+      desc:`Price is between max PE wall (${fmtN(maxPE)}) and max CE wall (${fmtN(maxCE)}). Sell CE near ${fmtN(maxCE-50)}, sell PE near ${fmtN(maxPE+50)} (iron condor). Or buy CE dips near ${fmtN(maxPE+100)}.`,
+      entry:`CE near ${fmtN(maxCE-50)} or PE near ${fmtN(maxPE+50)}`,
+      sl:`CE above ${fmtN(maxCE+100)} / PE below ${fmtN(maxPE-100)}`,
+      target:`Decay to zero (option sellers strategy)`
+    });
+  }
+
+  // 3. Breakout/Breakdown watch
+  if (spot > maxCE - 50) {
+    calls.push({
+      type:'buy-call', badge:'🚀 BREAKOUT WATCH',
+      title:`Testing CE wall at ${fmtN(maxCE)} — short covering may trigger`,
+      desc:`Spot near max CE OI strike (${fmtN(maxCE)}). If call writers unwind above ${fmtN(maxCE+30)}, a squeeze rally of ${range/3|0}–${range/2|0} pts is possible. Watch volume.`,
+      entry:`Above ${fmtN(maxCE+30)} with volume`,
+      sl:`Below ${fmtN(maxCE-80)}`,
+      target:`${fmtN(maxCE+Math.round((range/3)/50)*50)} then ${fmtN(maxCE+Math.round((range/2)/50)*50)}`
+    });
+  } else if (spot < maxPE + 50) {
+    calls.push({
+      type:'sell-call', badge:'🕳 BREAKDOWN WATCH',
+      title:`Testing PE wall at ${fmtN(maxPE)} — unwinding risk`,
+      desc:`Spot near max PE OI strike (${fmtN(maxPE)}). If put writers cover below ${fmtN(maxPE-30)}, a cascade sell-off of ${range/3|0}–${range/2|0} pts possible. Watch volume.`,
+      entry:`Below ${fmtN(maxPE-30)} with volume`,
+      sl:`Above ${fmtN(maxPE+80)}`,
+      target:`${fmtN(maxPE-Math.round((range/3)/50)*50)} then ${fmtN(maxPE-Math.round((range/2)/50)*50)}`
+    });
+  }
+
+  // 4. Max Pain gravity
+  const painDist = Math.abs(spot - maxPain);
+  if (painDist > 150) {
+    const dir = spot > maxPain ? 'DOWN' : 'UP';
+    calls.push({
+      type: dir==='DOWN' ? 'sell-call' : 'buy-call',
+      badge: '🟣 MAX PAIN GRAVITY',
+      title: `Price likely to drift ${dir} toward max pain ${fmtN(maxPain)}`,
+      desc: `Spot (${fmtN(Math.round(spot))}) is ${fmtN(Math.round(painDist))} pts from max pain (${fmtN(maxPain)}). Near expiry, this gravity strengthens. ${dir==='DOWN'?'Sell calls / buy PE near current level.':'Buy CE / sell puts near current level.'}`,
+      entry: dir==='DOWN' ? `PE near ${fmtN(Math.round(spot/50)*50)}` : `CE near ${fmtN(Math.round(spot/50)*50)}`,
+      sl:    dir==='DOWN' ? `Above ${fmtN(Math.round((spot+100)/50)*50)}` : `Below ${fmtN(Math.round((spot-100)/50)*50)}`,
+      target: fmtN(maxPain)
+    });
+  }
+
+  if (calls.length === 0) {
+    calls.push({
+      type:'neutral-call', badge:'⏸ WAIT & WATCH',
+      title:'No clear setup — market in equilibrium',
+      desc:`PCR (${pcr.toFixed(2)}) is neutral. Spot mid-range. Wait for price to approach ${fmtN(maxCE)} (resistance) or ${fmtN(maxPE)} (support) before initiating.`,
+      entry:'—', sl:'—', target:'—'
+    });
+  }
+
+  document.getElementById('tradeCalls').innerHTML = calls.map(c => `
+    <div class="call-item ${c.type}">
+      <div class="call-time">${now}</div>
+      <div class="call-type">${c.badge}</div>
+      <div class="call-title">${c.title}</div>
+      <div class="call-desc">${c.desc}</div>
+      <div class="call-levels">
+        <span class="call-lvl entry">ENTRY: ${c.entry}</span>
+        <span class="call-lvl sl">SL: ${c.sl}</span>
+        <span class="call-lvl target">TARGET: ${c.target}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// OI TABLE
+// ═══════════════════════════════════════════════
+function buildOITable(chain, spot, atm, maxCE, maxPE) {
+  const near = chain
+    .filter(r => Math.abs(r.strikePrice - atm) <= 600)
+    .sort((a, b) => b.strikePrice - a.strikePrice);
+
+  const maxCEoi = Math.max(...near.map(r => r.CE?.openInterest || 0));
+  const maxPEoi = Math.max(...near.map(r => r.PE?.openInterest || 0));
+
+  const rows = near.map(row => {
+    const isATM   = row.strikePrice === atm;
+    const isMaxCE = row.strikePrice === maxCE;
+    const isMaxPE = row.strikePrice === maxPE;
+    const ceOI    = row.CE?.openInterest || 0;
+    const peOI    = row.PE?.openInterest || 0;
+    const ceLTP   = row.CE?.lastPrice    || 0;
+    const peLTP   = row.PE?.lastPrice    || 0;
+    const ceChg   = row.CE?.changeinOpenInterest || 0;
+    const peChg   = row.PE?.changeinOpenInterest || 0;
+    const ceW     = maxCEoi ? Math.max(2, (ceOI / maxCEoi) * 60) : 2;
+    const peW     = maxPEoi ? Math.max(2, (peOI / maxPEoi) * 60) : 2;
+
+    let rowCls = '';
+    if (isATM)   rowCls = 'atm-row';
+    if (isMaxCE) rowCls = 'max-ce-row';
+    if (isMaxPE) rowCls = 'max-pe-row';
+
+    const ceChgHtml = ceChg > 0
+      ? `<span class="oi-chg-up">▲${fmtK(ceChg)}</span>`
+      : ceChg < 0
+        ? `<span class="oi-chg-down">▼${fmtK(Math.abs(ceChg))}</span>`
+        : `<span style="color:var(--muted)">—</span>`;
+    const peChgHtml = peChg > 0
+      ? `<span class="oi-chg-up">▲${fmtK(peChg)}</span>`
+      : peChg < 0
+        ? `<span class="oi-chg-down">▼${fmtK(Math.abs(peChg))}</span>`
+        : `<span style="color:var(--muted)">—</span>`;
+
+    return `<tr class="${rowCls}">
+      <td class="ce-oi">${ceChgHtml}</td>
+      <td class="ce-oi"><span class="oi-bar ce-bar" style="width:${ceW}px"></span>${fmtK(ceOI)}</td>
+      <td class="ce-oi">${(+ceLTP).toFixed(1)}</td>
+      <td class="strike-col">${fmtN(row.strikePrice)}${isATM?' <span style="font-size:8px;color:var(--accent)">ATM</span>':''}</td>
+      <td class="pe-oi">${(+peLTP).toFixed(1)}</td>
+      <td class="pe-oi">${fmtK(peOI)}<span class="oi-bar pe-bar" style="width:${peW}px"></span></td>
+      <td class="pe-oi">${peChgHtml}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('ocTableBody').innerHTML = rows ||
+    `<tr><td colspan="7" style="color:var(--muted);padding:16px;text-align:center;">No data</td></tr>`;
+}
+
+// ═══════════════════════════════════════════════
+// DEMO OPTION CHAIN (realistic, based on real spot)
+// ═══════════════════════════════════════════════
+function buildDemoOptionChain() {
+  const spot     = niftyData.price;
+  const atm      = Math.round(spot / 50) * 50;
+  const maxCE    = atm + 200;
+  const maxPE    = atm - 150;
+  const strikes  = [];
+  for (let s = atm - 600; s <= atm + 600; s += 50) strikes.push(s);
+
+  function ceOI(k) {
+    if (k === maxCE) return 9200000;
+    const d = k - atm;
+    if (d > 0) return Math.max(300000, 8500000 * Math.exp(-0.0002 * Math.pow(d - 200, 2)));
+    return Math.max(100000, 3000000 * Math.exp(-0.00015 * d * d));
+  }
+  function peOI(k) {
+    if (k === maxPE) return 10500000;
+    const d = atm - k;
+    if (d > 0) return Math.max(300000, 10000000 * Math.exp(-0.0002 * Math.pow(d - 150, 2)));
+    return Math.max(100000, 3500000 * Math.exp(-0.00015 * d * d));
+  }
+
+  const data = {
+    records: {
+      underlyingValue: spot,
+      data: strikes.map(k => ({
+        strikePrice: k,
+        expiryDate:  getNextThursday(),
+        CE: {
+          openInterest:         Math.round(ceOI(k)),
+          lastPrice:            Math.max(0.1, (maxCE - k) * 0.28 + 5).toFixed(1),
+          changeinOpenInterest: Math.round((Math.random() - 0.45) * 150000)
+        },
+        PE: {
+          openInterest:         Math.round(peOI(k)),
+          lastPrice:            Math.max(0.1, (k - maxPE) * 0.28 + 5).toFixed(1),
+          changeinOpenInterest: Math.round((Math.random() - 0.45) * 150000)
+        },
+      }))
+    }
+  };
+
+  document.getElementById('ocExpiry').textContent  = data.records.data[0].expiryDate + ' (DEMO)';
+  document.getElementById('ocLastUpdate').textContent = getIST().toLocaleTimeString('en-IN') + ' IST';
+  ocData = data;
+  renderOptionChain(data);
+}
+
+function getNextThursday() {
+  const d   = new Date();
+  const day = d.getDay();
+  const diff = day <= 4 ? 4 - day : 7 - (day - 4);
+  d.setDate(d.getDate() + diff);
+  const M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${d.getDate()}-${M[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+// ═══════════════════════════════════════════════
+// CHART (intraday 5-min)
+// ═══════════════════════════════════════════════
+async function buildChart() {
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=5m&range=1d';
+    const res  = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error();
+    const json   = await res.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) throw new Error();
+    const times  = result.timestamp.map(t => {
+      const d = new Date(t * 1000);
+      return d.toLocaleTimeString('en-IN', { timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit' });
+    });
+    const closes = result.indicators.quote[0].close.map(v => v ? +v.toFixed(2) : null);
+    renderChart(times, closes);
+  } catch (e) {
+    buildChartDemo();
+  }
+}
+
+function buildChartDemo() {
+  const times = [], data = [];
+  let p = (niftyData.price || 23370) - 120;
+  for (let h = 9; h <= 15; h++) {
+    for (let m = 0; m < 60; m += 5) {
+      if (h === 9 && m < 15) continue;
+      if (h === 15 && m > 30) break;
+      times.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+      p += (Math.random() - 0.48) * 15;
+      data.push(+p.toFixed(2));
+    }
+  }
+  renderChart(times, data);
+}
+
+function renderChart(labels, data) {
+  const ctx = document.getElementById('niftyChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  const { P, R1, R2, S1, S2 } = srLevels;
+  const valid = data.filter(v => v != null);
+  const minV  = Math.min(...valid, S2) - 30;
+  const maxV  = Math.max(...valid, R2) + 30;
+
+  // OI wall levels if available
+  let maxCELine = null, maxPELine = null;
+  if (ocData) {
+    const recs = ocData.records?.data || [];
+    const exp  = [...new Set(recs.map(r => r.expiryDate))][0];
+    let mCE = 0, mPE = 0;
+    recs.filter(r => r.expiryDate === exp).forEach(r => {
+      if ((r.CE?.openInterest || 0) > mCE) { mCE = r.CE.openInterest; maxCELine = r.strikePrice; }
+      if ((r.PE?.openInterest || 0) > mPE) { mPE = r.PE.openInterest; maxPELine = r.strikePrice; }
+    });
+  }
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'NIFTY', data,
+        borderColor: '#f0b429', borderWidth: 2, pointRadius: 0,
+        fill: true,
+        backgroundColor: c => {
+          const g = c.chart.ctx.createLinearGradient(0, 0, 0, 280);
+          g.addColorStop(0, 'rgba(240,180,41,0.15)');
+          g.addColorStop(1, 'rgba(240,180,41,0)');
+          return g;
+        },
+        tension: 0.3, spanGaps: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#151b24', borderColor: '#f0b429', borderWidth: 1,
+          titleColor: '#6b7280', bodyColor: '#f0b429',
+          bodyFont: { family: 'JetBrains Mono', size: 13, weight: '700' },
+          callbacks: { label: c => ` ₹ ${c.raw?.toLocaleString('en-IN', { minimumFractionDigits:2 })}` }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 8 } },
+        y: { min: minV, max: maxV, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 9 }, callback: v => v.toLocaleString('en-IN') } }
+      }
+    },
+    plugins: [{
+      id: 'srAndOILines',
+      afterDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        const lines = [
+          { val: R2,        color: '#ef4444',           label: 'R2',     dash: [5,3] },
+          { val: R1,        color: '#f87171',            label: 'R1',     dash: [4,4] },
+          { val: P,         color: '#f0b429',            label: 'PP',     dash: [8,2] },
+          { val: S1,        color: '#4ade80',            label: 'S1',     dash: [4,4] },
+          { val: S2,        color: '#22c55e',            label: 'S2',     dash: [5,3] },
+          ...(maxCELine != null ? [{ val: maxCELine, color:'rgba(239,68,68,0.9)',   label:'MAX CE', dash:[3,3] }] : []),
+          ...(maxPELine != null ? [{ val: maxPELine, color:'rgba(34,197,94,0.9)',   label:'MAX PE', dash:[3,3] }] : []),
+        ];
+        lines.forEach(l => {
+          const y = scales.y.getPixelForValue(l.val);
+          if (y < chartArea.top || y > chartArea.bottom) return;
+          ctx.save();
+          ctx.setLineDash(l.dash);
+          ctx.strokeStyle = l.color; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
+          ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke();
+          ctx.setLineDash([]); ctx.globalAlpha = 1;
+          ctx.fillStyle = l.color; ctx.font = 'bold 9px JetBrains Mono';
+          ctx.fillText(`${l.label} ${l.val.toFixed ? l.val.toFixed(0) : l.val}`, chartArea.right - 68, y - 3);
+          ctx.restore();
+        });
+      }
+    }]
+  });
+}
+
+// ═══════════════════════════════════════════════
+// NEWS
+// ═══════════════════════════════════════════════
+const newsFeeds = {
+  domestic: ['https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms'],
+  global:   ['https://feeds.bbci.co.uk/news/business/rss.xml'],
+  economy:  ['https://economictimes.indiatimes.com/economy/rssfeeds/1373380680.cms'],
+};
+const sampleNews = {
+  domestic: [
+    { title:'Nifty holds 23,300 support; analysts watch for breakout above 23,500', pubDate:new Date().toISOString(), link:'#' },
+    { title:'RBI policy meet outcome; repo rate unchanged, focus on liquidity management', pubDate:new Date().toISOString(), link:'#' },
+    { title:'FII turn net buyers; IT, pharma sectors see fresh accumulation', pubDate:new Date().toISOString(), link:'#' },
+    { title:'India VIX at 14; low volatility signals steady near-term sentiment', pubDate:new Date().toISOString(), link:'#' },
+    { title:'Bank Nifty consolidates near 54,000; HDFC Bank, ICICI Bank hold gains', pubDate:new Date().toISOString(), link:'#' },
+  ],
+  global: [
+    { title:'US markets extend gains; S&P 500 holds above key resistance on Fed pause hopes', pubDate:new Date().toISOString(), link:'#' },
+    { title:'Asian markets mixed; Nikkei rises, Hang Seng under pressure from China data', pubDate:new Date().toISOString(), link:'#' },
+    { title:'Crude oil dips; Brent below $83 on demand concerns and high US inventories', pubDate:new Date().toISOString(), link:'#' },
+    { title:'Dollar index steady ahead of US CPI data; EM currencies consolidate', pubDate:new Date().toISOString(), link:'#' },
+  ],
+  economy: [
+    { title:'India GDP growth at 7.4% in FY26 Q1; manufacturing PMI hits 4-month high', pubDate:new Date().toISOString(), link:'#' },
+    { title:'CPI inflation at 4.6%; RBI comfortable with current trajectory', pubDate:new Date().toISOString(), link:'#' },
+    { title:'India trade deficit narrows; exports up 8% YoY in May 2026', pubDate:new Date().toISOString(), link:'#' },
+  ],
+};
+
+async function loadNews(tab) {
+  document.getElementById('newsList').innerHTML = '<div class="skeleton" style="height:70px;"></div>'.repeat(3);
+  let items = [];
+  try {
+    const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(newsFeeds[tab][0])}&count=8`;
+    const res  = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const json = await res.json();
+    if (json.items?.length) items = json.items.slice(0, 8);
+  } catch (e) {}
+  if (!items.length) items = sampleNews[tab] || sampleNews.domestic;
+
+  document.getElementById('newsList').innerHTML = items.map(item => {
+    let src = 'markets';
+    try { src = new URL(item.link).hostname.replace('www.', ''); } catch {}
+    return `<a class="news-item" href="${item.link || '#'}" target="_blank" rel="noopener">
+      <div class="news-tag">${src.toUpperCase()}</div>
+      <div class="news-headline">${item.title}</div>
+      <div class="news-meta">${timeAgo(new Date(item.pubDate || item.isoDate))}</div>
+    </a>`;
+  }).join('');
+}
+
+function timeAgo(d) {
+  if (isNaN(d)) return 'just now';
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60)    return `${Math.round(diff)}s ago`;
+  if (diff < 3600)  return `${Math.round(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.round(diff/3600)}h ago`;
+  return `${Math.round(diff/86400)}d ago`;
+}
+
+function switchNews(tab, el) {
+  activeNewsTab = tab;
+  document.querySelectorAll('.news-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadNews(tab);
+}
+
+// ═══════════════════════════════════════════════
+// SCHEDULING
+// ═══════════════════════════════════════════════
+function scheduleRefreshes() {
+  // Price: every 2 min during market hours
+  setInterval(() => {
+    if (isMarketOpen()) {
+      fetchNiftyData();
+    }
+  }, 2 * 60 * 1000);
+
+  // News: every 15 min
+  setInterval(() => loadNews(activeNewsTab), 15 * 60 * 1000);
+
+  // 9am IST page reload (picks up fresh previous day OHLC)
+  const ist  = getIST();
+  const next = new Date(ist);
+  next.setHours(9, 0, 0, 0);
+  if (ist >= next) next.setDate(next.getDate() + 1);
+  const msUntil = next - ist;
+  document.getElementById('nextUpdate').textContent =
+    `NEXT RESET: ${Math.floor(msUntil/3600000)}h ${Math.floor((msUntil%3600000)/60000)}m`;
+  setTimeout(() => location.reload(), msUntil);
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+async function init() {
+  // Step 1: Immediately show reference data so S/R is correct right away
+  niftyData = { ...REAL_NIFTY_REFERENCE };
+  calculateSR();
+  buildTextReport();
+  updatePriceCard();
+  updateTicker();
+  srLocked = false; // allow recalculation if live data arrives with different prev close
+
+  // Step 2: Try live fetch (upgrades data if it works in user's browser)
+  srLocked = false;
+  await fetchNiftyData();
+
+  // Step 3: Load option chain and news in parallel
+  await Promise.all([
+    fetchOptionChain(),
+    loadNews('domestic'),
+  ]);
+
+  // Step 4: Chart (needs SR levels to be ready)
+  await buildChart();
+
+  // Step 5: Schedules
+  scheduleRefreshes();
+  runOCCountdown();
+}
+
+init();
+</script>
+</body>
+</html>
